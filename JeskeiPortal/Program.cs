@@ -19,4 +19,7 @@ builder.Services.AddSingleton<IEthereumHostProvider>(serviceProvider =>
 });
 builder.Services.AddSingleton<NethereumSiweAuthenticatorService>();
 
+// register the Telerik services
+builder.Services.AddTelerikBlazor();
+
 await builder.Build().RunAsync();

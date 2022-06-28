@@ -1,284 +1,601 @@
 ﻿@page "/upload-video"
-@*<PageTitle>Index</PageTitle>
+@using System.ComponentModel.DataAnnotations
+@using System.Net
+@using System.Collections.Specialized
+@using Telerik.Blazor
+@using Telerik.Blazor.Components
+@using Telerik.Blazor.Components.Upload
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsInterop
 
-    <h1>Hello, world!</h1>
+@if (string.IsNullOrEmpty(SuccessMessage))
+{
+    <EditForm EditContext="@MyEditContext" OnValidSubmit="@HandleValidSubmit" OnInvalidSubmit="@HandleInvalidSubmit">
+        <DataAnnotationsValidator />
 
-    Welcome to your new app.
+        @if (NotValid)
+        {
+            <div class="demo-alert demo-alert-error">
+                <ValidationSummary />
+            </div>
+        }
 
-    <SurveyPrompt Title="How is Blazor working for you?" />*@
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="main-title">
+                    <h6>Upload Details</h6>
+                </div>
+            </div>
+            <div class="col-lg-2">
+                <div class="imgplace"></div>
+            </div>
+            <div class="col-lg-10">
+                <div class="osahan-title">Contrary to popular belief, Lorem Ipsum (2020) is not.</div>
+                <div class="osahan-size">102.6 MB . 2:13 MIN Remaining</div>
+                <div class="osahan-progress">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 75%"></div>
+                    </div>
+                    <div class="osahan-close">
+                        <a href="#"><i class="fas fa-times-circle"></i></a>
+                    </div>
+                </div>
+                <div class="osahan-desc">Your Video is still uploading, please keep this page open until it's done.</div>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="osahan-form">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="form-group">
+                                <label for="e1">Video Title</label>
+                                <InputText placeholder="Romance in New York" class="form-control" @bind-Value="@currentForm.Title" />
+                            </div>
+                        </div>
+                        <div class="col-lg-12">
+                            <div class="form-group">
+                                <label for="e2">About</label>
+                                <InputTextArea rows="3" placeholder="Description" class="form-control" @bind-Value="@currentForm.About"></InputTextArea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-3">
+                            <div class="form-group">
+                                <label for="e3">Access</label>
 
-               <div class="row">
-                  <div class="col-lg-12">
-                     <div class="main-title">
-                        <h6>Upload Details</h6>
-                     </div>
-                  </div>
-                  <div class="col-lg-2">
-                     <div class="imgplace"></div>
-                  </div>
-                  <div class="col-lg-10">
-                     <div class="osahan-title">Contrary to popular belief, Lorem Ipsum (2020) is not.</div>
-                     <div class="osahan-size">102.6 MB . 2:13 MIN Remaining</div>
-                     <div class="osahan-progress">
-                        <div class="progress">
-                           <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="75"   aria-valuemin="0" aria-valuemax="100" style="width: 75%"></div>
+                                <select class="custom-select" @bind="@SelectedAccessID">
+                                    @foreach (var access in AccessList)
+                                    {
+                                        <option value="@access.Code"> @access.Name </option>
+                                    }
+                                </select>
+
+                            </div>
                         </div>
-                        <div class="osahan-close">
-                           <a href="#"><i class="fas fa-times-circle"></i></a>
+                        <div class="col-lg-3">
+                            <div class="form-group">
+                                <label for="e9">Language</label>
+                                <select class="custom-select" @bind="@SelectedLanguageID">
+                                    @foreach (var language in LanguageList)
+                                    {
+                                        <option value="@language.Code"> @language.Name </option>
+                                    }
+                                </select>
+
+
+                            </div>
                         </div>
-                     </div>
-                     <div class="osahan-desc">Your Video is still uploading, please keep this page open until it's done.</div>
-                  </div>
-               </div>
-               <hr>
-               <div class="row">
-                  <div class="col-lg-12">
-                     <div class="osahan-form">
-                        <div class="row">
-                           <div class="col-lg-12">
-                              <div class="form-group">
-                                 <label for="e1">Video Title</label>
-                                 <input type="text" placeholder="Contrary to popular belief, Lorem Ipsum (2020) is not." id="e1" class="form-control">
-                              </div>
-                           </div>
-                           <div class="col-lg-12">
-                              <div class="form-group">
-                                 <label for="e2">About</label>
-                                 <textarea rows="3" id="e2" name="e2" class="form-control">Description</textarea>
-                              </div>
-                           </div>
+                        <div class="col-lg-3">
+                            <div class="form-group">
+                                <label for="e5">Monetize</label>
+                                <select class="custom-select" @bind="@SelectedLanguageID" >
+                                    @foreach (var monetize in MonetizeList)
+                                    {
+                                        <option value="@monetize.Code"> @monetize.Name </option>
+                                    }
+                                </select>
+                            </div>
                         </div>
-                        <div class="row">
-                           <div class="col-lg-3">
-                              <div class="form-group">
-                                 <label for="e3">Orientation</label>
-                                 <select id="e3" class="custom-select">
-                                    <option>Straight</option>
-                                    <option>2</option>
-                                    <option>3</option>
-                                    <option>4</option>
-                                    <option>5</option>
-                                 </select>
-                              </div>
-                           </div>
-                           <div class="col-lg-3">
-                              <div class="form-group">
-                                 <label for="e4">Privacy Settings</label>
-                                 <select id="e4" class="custom-select">
-                                    <option>Public</option>
-                                    <option>2</option>
-                                    <option>3</option>
-                                    <option>4</option>
-                                    <option>5</option>
-                                 </select>
-                              </div>
-                           </div>
-                           <div class="col-lg-3">
-                              <div class="form-group">
-                                 <label for="e5">Monetize</label>
-                                 <select id="e5" class="custom-select">
-                                    <option>Yes</option>
-                                    <option>2</option>
-                                    <option>3</option>
-                                    <option>4</option>
-                                    <option>5</option>
-                                 </select>
-                              </div>
-                           </div>
-                           <div class="col-lg-3">
-                              <div class="form-group">
-                                 <label for="e6">License</label>
-                                 <select id="e6" class="custom-select">
-                                    <option>Standard</option>
-                                    <option>2</option>
-                                    <option>3</option>
-                                    <option>4</option>
-                                    <option>5</option>
-                                 </select>
-                              </div>
-                           </div>
+                        <div class="col-lg-3">
+                            <div class="form-group">
+                                <label for="e6">License</label>
+
+                                <select class="custom-select" @bind="@SelectedLicenseID">
+                                    @foreach (var license in LicenseList)
+                                    {
+                                        <option value="@license.Code"> @license.Name </option>
+                                    }
+                                </select>
+
+                            </div>
                         </div>
-                        <div class="row">
-                           <div class="col-lg-5">
-                              <div class="form-group">
-                                 <label for="e7">Tags (13 Tags Remaining)</label>
-                                 <input type="text" placeholder="Gaming, PS4" id="e7" class="form-control">
-                              </div>
-                           </div>
-                           <div class="col-lg-4">
-                              <div class="form-group">
-                                 <label for="e8">Cast (Optional)</label>
-                                 <input type="text" placeholder="Nathan Drake," id="e8" class="form-control">
-                              </div>
-                           </div>
-                           <div class="col-lg-3">
-                              <div class="form-group">
-                                 <label for="e9">Language in Video (Optional)</label>
-                                 <select id="e9" class="custom-select">
-                                    <option>English</option>
-                                    <option>2</option>
-                                    <option>3</option>
-                                    <option>4</option>
-                                    <option>5</option>
-                                 </select>
-                              </div>
-                           </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="form-group">
+                                <label for="e7">Tags (13 Tags Remaining)</label>
+                                <InputText placeholder="Gaming, PS4" class="form-control" @bind-Value="@currentForm.Tags" />
+                            </div>
                         </div>
-                        <div class="row ">
-                           <div class="col-lg-12">
-                              <div class="main-title">
-                                 <h6>Category ( you can select upto 6 categories )</h6>
-                              </div>
-                           </div>
+                        <div class="col-lg-5">
+                            <div class="form-group">
+                                <label for="e8">Cast (Optional)</label>
+                                <InputText placeholder="Nathan Drake," class="form-control" @bind-Value="@currentForm.Cast" />
+                            </div>
                         </div>
-                        <div class="row category-checkbox">
-                           <!-- checkbox 1col -->
-                           <div class="col-lg-2 col-xs-6 col-4">
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="customCheck1">
-                                 <label class="custom-control-label" for="customCheck1">Abaft</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="customCheck2">
-                                 <label class="custom-control-label" for="customCheck2">Brick</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="customCheck3">
-                                 <label class="custom-control-label" for="customCheck3">Purpose</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="customCheck4">
-                                 <label class="custom-control-label" for="customCheck4">Shallow</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="customCheck5">
-                                 <label class="custom-control-label" for="customCheck5">Spray</label>
-                              </div>
-                           </div>
-                           <!-- checkbox 2col -->
-                           <div class="col-lg-2 col-xs-6 col-4">
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="zcustomCheck1">
-                                 <label class="custom-control-label" for="zcustomCheck1">Cemetery</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="zcustomCheck2">
-                                 <label class="custom-control-label" for="zcustomCheck2">Trouble</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="zcustomCheck3">
-                                 <label class="custom-control-label" for="zcustomCheck3">Pin</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="zcustomCheck4">
-                                 <label class="custom-control-label" for="zcustomCheck4">Fall</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="zcustomCheck5">
-                                 <label class="custom-control-label" for="zcustomCheck5">Leg</label>
-                              </div>
-                           </div>
-                           <!-- checkbox 3col -->
-                           <div class="col-lg-2 col-xs-6 col-4">
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="czcustomCheck1">
-                                 <label class="custom-control-label" for="czcustomCheck1">Scissors</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="czcustomCheck2">
-                                 <label class="custom-control-label" for="czcustomCheck2">Stitch</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="czcustomCheck3">
-                                 <label class="custom-control-label" for="czcustomCheck3">Agonizing</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="czcustomCheck4">
-                                 <label class="custom-control-label" for="czcustomCheck4">Rescue</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="czcustomCheck5">
-                                 <label class="custom-control-label" for="czcustomCheck5">Quiet</label>
-                              </div>
-                           </div>
-                           <!-- checkbox 1col -->
-                           <div class="col-lg-2 col-xs-6 col-4">
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="customCheck1">
-                                 <label class="custom-control-label" for="customCheck1">Abaft</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="customCheck2">
-                                 <label class="custom-control-label" for="customCheck2">Brick</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="customCheck3">
-                                 <label class="custom-control-label" for="customCheck3">Purpose</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="customCheck4">
-                                 <label class="custom-control-label" for="customCheck4">Shallow</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="customCheck5">
-                                 <label class="custom-control-label" for="customCheck5">Spray</label>
-                              </div>
-                           </div>
-                           <!-- checkbox 2col -->
-                           <div class="col-lg-2 col-xs-6 col-4">
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="zcustomCheck1">
-                                 <label class="custom-control-label" for="zcustomCheck1">Cemetery</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="zcustomCheck2">
-                                 <label class="custom-control-label" for="zcustomCheck2">Trouble</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="zcustomCheck3">
-                                 <label class="custom-control-label" for="zcustomCheck3">Pin</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="zcustomCheck4">
-                                 <label class="custom-control-label" for="zcustomCheck4">Fall</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="zcustomCheck5">
-                                 <label class="custom-control-label" for="zcustomCheck5">Leg</label>
-                              </div>
-                           </div>
-                           <!-- checkbox 3col -->
-                           <div class="col-lg-2 col-xs-6 col-4">
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="czcustomCheck1">
-                                 <label class="custom-control-label" for="czcustomCheck1">Vessel</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="czcustomCheck2">
-                                 <label class="custom-control-label" for="czcustomCheck2">Stitch</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="czcustomCheck3">
-                                 <label class="custom-control-label" for="czcustomCheck3">Agonizing</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="czcustomCheck4">
-                                 <label class="custom-control-label" for="czcustomCheck4">Rescue</label>
-                              </div>
-                              <div class="custom-control custom-checkbox">
-                                 <input type="checkbox" class="custom-control-input" id="czcustomCheck5">
-                                 <label class="custom-control-label" for="czcustomCheck5">Quiet</label>
-                              </div>
-                           </div>
+
+                    </div>
+                    <div class="row ">
+                        <div class="col-lg-12">
+                            <div class="main-title">
+                                <h6>Fee recipients ( you can specify up to 6 recipients for fees )</h6>
+                            </div>
                         </div>
-                     </div>
-                     <div class="osahan-area text-center mt-3">
-                        <button class="btn btn-outline-primary">Save Changes</button>
-                     </div>
-                     <hr>
-                     <div class="terms text-center">
-                        <p class="mb-0">There are many variations of passages of Lorem Ipsum available, but the majority <a href="#">Terms of Service</a> and <a href="#">Community Guidelines</a>.</p>
-                        <p class="hidden-xs mb-0">Ipsum is therefore always free from repetition, injected humour, or non</p>
-                     </div>
-                  </div>
-               </div>
+                    </div>
+                    <div class="row">
+                        <!-- checkbox 1col -->
+                        <div class="col-lg-2 col-xs-6 col-4">
+                            <div class="custom-control">
+                                <input type="text" placeholder="0x wallet address" id="e1" class="form-control">
+                                <label for="e1">Recipient 1: </label>
+                            </div>
+                            <div class="custom-control">
+                                <input type="text" placeholder="0x wallet address" id="e2" class="form-control">
+                                <label for="e2">Recipient 2:</label>
+                            </div>
+                            <div class="custom-control">
+                                <input type="text" placeholder="0x wallet address" id="e3" class="form-control">
+                                <label for="e3">Recipient 3:</label>
+                            </div>
+                            <div class="custom-control">
+                                <input type="text" placeholder="0x wallet address" id="e4" class="form-control">
+                                <label for="e4">Recipient 4:</label>
+                            </div>
+                            <div class="custom-control ">
+                                <input type="text" placeholder="0x wallet address" id="e5" class="form-control">
+                                <label for="e5">Recipient 5:</label>
+                            </div>
+                        </div>
+                        <!-- checkbox 2col -->
+                        <div class="col-lg-2 col-xs-6 col-4">
+                            <div class="custom-control">
+                                <input type="text" placeholder="weight" id="e1" class="form-control">
+                                <label style="padding-top:14px;" for="e1"> </label>
+                            </div>
+                            <div class="custom-control">
+                                <input type="text" placeholder="weight" id="e1" class="form-control">
+                                <label style="padding-top:14px;" for="e1"> </label>
+                            </div>
+                            <div class="custom-control">
+                                <input type="text" placeholder="weight" id="e1" class="form-control">
+                                <label style="padding-top:14px;" for="e1"> </label>
+                            </div>
+                            <div class="custom-control">
+                                <input type="text" placeholder="weight" id="e1" class="form-control">
+                                <label style="padding-top:14px;" for="e1"> </label>
+                            </div>
+                            <div class="custom-controlx">
+                                <input type="text" placeholder="weight" id="e1" class="form-control">
+                                <label style="padding-top:14px;" for="e1"> </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="osahan-area text-center mt-3">
+                    <button class="btn btn-outline-primary">Upload Video</button>
+                </div>
+                <hr>
+                <div class="terms text-center">
+                    <p class="mb-0">There are many variations of passages of Lorem Ipsum available, but the majority <a href="#">Terms of Service</a> and <a href="#">Community Guidelines</a>.</p>
+                    <p class="hidden-xs mb-0">Ipsum is therefore always free from repetition, injected humour, or non</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="k-form-field">
+            <label class="k-label k-form-label">Video file:</label>
+            <div class="k-form-field-wrap">
+                <TelerikUpload
+                           @ref="@UploadRef"
+                           SaveUrl="@SaveUrl"
+                           RemoveUrl="@RemoveUrl"
+                           AllowedExtensions="@( new List<string>() { ".mpg", ".avi" } )"
+                           OnSelect="@OnSelectHandler"
+                           OnCancel="@OnCancelHandler"
+                           OnRemove="@OnRemoveHandler">
+                </TelerikUpload>
+                <div class="k-form-hint">Accepted files: <strong>MPG and AVI</strong></div>
+            </div>
+        </div>
+    </EditForm>
+}
+else
+{
+    <div class="demo-alert demo-alert-success" role="alert">
+        @SuccessMessage
+        <br />
+        <TelerikButton ThemeColor="@(ThemeConstants.Button.ThemeColor.Dark)" OnClick="@BackToForm">Go back</TelerikButton>
+    </div>
+}
+
+@code {
+    // setup upload endpoints
+    public string SaveUrl => ToAbsoluteUrl("api/upload/save");
+    public string RemoveUrl => ToAbsoluteUrl("api/upload/remove");
+
+    TelerikUpload UploadRef { get; set; }
+
+    public string ToAbsoluteUrl(string url)
+    {
+        return $"{NavigationManager.BaseUri}{url}";
+    }
+
+    // setup validation, this is a workaround because file validation does not exist in the framework
+    // see more here https://github.com/dotnet/aspnetcore/issues/18821
+    VideoAssetForm currentForm { get; set; }
+    protected EditContext MyEditContext { get; set; }
+
+    string SelectedLicenseID
+    {
+        get => currentForm.SelectedLicenseID;
+        set { currentForm.SelectedLicenseID = value; }
+    }
+
+    List<License> LicenseList = new List<License>() { new License ("STD", "Standard Jeskei License"),
+                                                      new License ("CC", "Creative Commons - Attribution"),
+                                                      new License ("SA", "ShareAlike - Attribution"),
+                                                      new License ("ND", "No Derivatives - Attribution"),
+                                                      new License ("PD", "Public Domain"),
+                                                      new License ("RF", "Royalty Free"),
+                                                      new License ("C", "Copyrighted")};
+
+    public class License
+    {
+        public License(string code, string name)
+        {
+            Code = code;
+            Name = name;
+        }
+        public string Code { get; set; }
+        public string Name { get; set; }
+    }
+
+    string SelectedAccessID
+    {
+        get => currentForm.SelectedAccessID;
+        set { currentForm.SelectedAccessID = value; }
+    }
+
+    List<Access> AccessList = new List<Access>() { new Access ("Public", "Public"),
+                                                   new Access ("Private", "Private"),
+                                                   new Access ("Channel Subscribers", "Channel Subscribers")};
+
+    public class Access
+    {
+        public Access(string code, string name)
+        {
+            Code = code;
+            Name = name;
+        }
+        public string Code { get; set; }
+        public string Name { get; set; }
+    }
+
+
+    string SelectedLanguageID
+    {
+        get => currentForm.SelectedLanguageID;
+        set { currentForm.SelectedLanguageID = value; }
+    }
+
+    List<Language> LanguageList = new List<Language>() { new Language ("English", "English"),
+                                                         new Language ("French", "French"),
+                                                         new Language ("German", "German"),
+                                                         new Language ("Italian", "Italian"),
+                                                         new Language ("Spanish", "Spanish")};
+
+    public class Language
+    {
+        public Language(string code, string name)
+        {
+            Code = code;
+            Name = name;
+        }
+        public string Code { get; set; }
+        public string Name { get; set; }
+    }
+
+    string SelectedMonetizeID
+    {
+        get => currentForm.SelectedMonetizeID;
+        set { currentForm.SelectedMonetizeID = value; }
+    }
+
+    List<Monetize> MonetizeList = new List<Monetize>() { new Monetize ("No", "No"),
+                                                         new Monetize ("Pay to View", "Pay to View"),
+                                                         new Monetize ("Advertise", "Advertise"),
+                                                         new Monetize ("Pay to View &Aacute; Advertise", "Pay to View &Aacute; Advertise")};
+
+    public class Monetize
+    {
+        public Monetize(string code, string name)
+        {
+            Code = code;
+            Name = name;
+        }
+        public string Code { get; set; }
+        public string Name { get; set; }
+    }
+
+    private bool NotValid => MyEditContext.GetValidationMessages().Any();
+    Dictionary<string, bool> FilesValidationInfo { get; set; } = new Dictionary<string, bool>();
+
+    protected override void OnInitialized()
+    {
+        currentForm = new VideoAssetForm();
+        MyEditContext = new EditContext(currentForm);
+    }
+
+    void OnSelectHandler(UploadSelectEventArgs e)
+    {
+        foreach (var item in e.Files)
+        {
+            if (!FilesValidationInfo.Keys.Contains(item.Id))
+            {
+                // nothing is assumed to be valid until the server returns an OK
+                FilesValidationInfo.Add(item.Id, IsSelectedFileValid(item));
+            }
+        }
+
+        UpdateValidationModel();
+    }
+
+    void OnCancelHandler(UploadCancelEventArgs e)
+    {
+        RemoveFailedFilesFromList(e.Files);
+        UpdateValidationModel();
+    }
+
+    void OnRemoveHandler(UploadEventArgs e)
+    {
+        RemoveFailedFilesFromList(e.Files);
+        UpdateValidationModel();
+    }
+
+    void RemoveFailedFilesFromList(List<UploadFileInfo> files)
+    {
+        foreach (var file in files)
+        {
+            if (FilesValidationInfo.Keys.Contains(file.Id))
+            {
+                FilesValidationInfo.Remove(file.Id);
+            }
+        }
+    }
+
+    bool IsSelectedFileValid(UploadFileInfo file)
+    {
+        return !(file.InvalidExtension || file.InvalidMaxFileSize || file.InvalidMinFileSize);
+    }
+
+    void UpdateValidationModel()
+    {
+        bool areAllUploadedFilesValid = false;
+
+        if (FilesValidationInfo.Keys.Count > 0 &&
+            !FilesValidationInfo.Values.Contains(false))
+        {
+            areAllUploadedFilesValid = true;
+        }
+
+        currentForm.IsMovieValid = areAllUploadedFilesValid;
+
+        // we update the validation state out of the standard form cycle and events
+        // so we need an EditContext that we can call upon to re-evaluate the validation
+        MyEditContext.Validate();
+    }
+
+
+    // sample model
+    public class VideoAssetForm
+    {
+        [Required(ErrorMessage = "Enter a video title")]
+        public string? Title { get; set; }
+
+        [Required(ErrorMessage = "Enter a description")]
+        public string? About { get; set; }
+
+        public int Currency { get; set; }
+
+        public int Access { get; set; }
+
+        public int Monetise { get; set; }
+
+        public int License { get; set; }
+
+        [Required(ErrorMessage = "Enter at least one tag")]
+        public string? Tags { get; set; }
+
+        public string? Cast { get; set; }
+
+        public int Language { get; set; }
+
+        public string? SelectedAccessID { get; set; }
+
+        public string? SelectedLicenseID { get; set; }
+
+        public string? SelectedLanguageID { get; set; }
+
+        public string? SelectedMonetizeID { get; set; }
+
+        [Required(ErrorMessage = "Please upload a movie file")]
+        [Range(typeof(bool), "true", "true", ErrorMessage = "Please upload a valid movie file")]
+        public bool IsMovieValid { get; set; }
+    }
+
+    // UI for the demo to showcase changes to the form validation and success
+    string SuccessMessage = string.Empty;
+
+    void HandleValidSubmit()
+    {
+        /*
+        NameValueCollection nvc = new NameValueCollection();
+        nvc.Add("id", "TTR");
+        nvc.Add("btn-submit-photo", "Upload");
+        HttpUploadFile("https://api.thetavideoapi.com/upload", 
+         @"C:\test\test.jpg", "file", "image/jpeg", nvc);
+         */
+
+        SuccessMessage = "Video uploaded!";
+    }
+
+    public static void HttpUploadFile(string url, string file, string paramName, string contentType, NameValueCollection nvc) {
+        string boundary = "---------------------------" + DateTime.Now.Ticks.ToString("x");
+        byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
+
+        HttpWebRequest wr = (HttpWebRequest)WebRequest.Create(url);
+        wr.ContentType = "multipart/form-data; boundary=" + boundary;
+        wr.Method = "POST";
+        wr.KeepAlive = true;
+        wr.Credentials = System.Net.CredentialCache.DefaultCredentials;
+
+        Stream rs = wr.GetRequestStream();
+
+        string formdataTemplate = "Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}";
+        foreach (string key in nvc.Keys)
+        {
+            rs.Write(boundarybytes, 0, boundarybytes.Length);
+            string formitem = string.Format(formdataTemplate, key, nvc[key]);
+            byte[] formitembytes = System.Text.Encoding.UTF8.GetBytes(formitem);
+            rs.Write(formitembytes, 0, formitembytes.Length);
+        }
+        rs.Write(boundarybytes, 0, boundarybytes.Length);
+
+        string headerTemplate = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: {2}\r\n\r\n";
+        string header = string.Format(headerTemplate, paramName, file, contentType);
+        byte[] headerbytes = System.Text.Encoding.UTF8.GetBytes(header);
+        rs.Write(headerbytes, 0, headerbytes.Length);
+
+        FileStream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read);
+        byte[] buffer = new byte[4096];
+        int bytesRead = 0;
+        while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0) {
+            rs.Write(buffer, 0, bytesRead);
+        }
+        fileStream.Close();
+
+        byte[] trailer = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
+        rs.Write(trailer, 0, trailer.Length);
+        rs.Close();
+
+        WebResponse wresp = null;
+        try {
+            wresp = wr.GetResponse();
+            Stream stream2 = wresp.GetResponseStream();
+            StreamReader reader2 = new StreamReader(stream2);
+        } catch(Exception ex) {
+            if(wresp != null) {
+                wresp.Close();
+                wresp = null;
+            }
+        } finally {
+            wr = null;
+        }
+    }
+
+
+    void HandleInvalidSubmit()
+    {
+        SuccessMessage = string.Empty;
+    }
+
+    void Upload()
+    {
+        UploadRef.UploadFiles();
+    }
+
+    async Task BackToForm()
+    {
+        await JsInterop.InvokeVoidAsync("window.location.reload");
+    }
+}
+
+<style>
+    .box {
+        margin: 4.5em 7.5em;
+        padding: 3em;
+        background-color: rgba(20,53,80,0.038);
+        border: 1px solid rgba(20,53,80,0.05);
+    }
+
+    .demo-section {
+        margin: 0 auto;
+        padding: 3em;
+        border: 1px solid rgba(20,53,80,0.14);
+        box-shadow: 0 1px 2px 1px rgba(0,0,0,.08), 0 3px 6px rgba(0,0,0,.08);
+    }
+
+    .auto {
+        max-width: max-content;
+    }
+
+    .demo-section:not(.wide):not(.auto),
+    .box:not(.wide):not(.auto) {
+        max-width: 500px;
+    }
+
+    .box:after,
+    .demo-section:after {
+        content: ";
+        display: block;
+        clear: both;
+        height: 0;
+    }
+
+    .box {
+        margin: 4.5em auto;
+    }
+
+    .box:first-child {
+        margin-top: 0;
+    }
+
+    .center {
+        text-align: center;
+    }
+
+    .demo-section.editor {
+        max-width: 100%;
+        border: none;
+    }
+    .demo-alert {
+        font: normal 18px "Metric";
+        border-radius: 2px;
+        margin: 20px auto 40px auto;
+        padding: 20px;
+        border-left: 4px solid;
+    }
+
+    .demo-alert-success {
+        border-left-color: rgb(55,180,0);
+        background: rgba(55,180,0, 0.1);
+    }
+
+    .demo-alert-info {
+        border-left-color: rgb(83,146,228);
+        background: rgba(83,146,228, 0.1);
+    }
+
+    .demo-alert-error {
+        border-left-color: rgb(243, 23, 0);
+        background: rgba(243, 23, 0, 0.1);
+    }
+
+    .demo-alert-warning {
+        border-left-color: rgb(255, 192, 0);
+        background: rgba(255, 192, 0, 0.1);
+    }
+</style>
