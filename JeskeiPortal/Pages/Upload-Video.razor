@@ -2,11 +2,22 @@
 @using System.ComponentModel.DataAnnotations
 @using System.Net
 @using System.Collections.Specialized
+@using Azure.Storage.Blobs
+@using Azure.Storage.Blobs.Models
+@using Newtonsoft.Json
+@using System.Text
+@using System.Net.Http.Headers
 @using Telerik.Blazor
 @using Telerik.Blazor.Components
 @using Telerik.Blazor.Components.Upload
+@inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JsInterop
+@using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+@using Microsoft.Extensions.DependencyInjection;
+@using System;
+@using System.Net.Http;
+@using System.Threading.Tasks;
 
 @if (string.IsNullOrEmpty(SuccessMessage))
 {
@@ -91,7 +102,7 @@
                         <div class="col-lg-3">
                             <div class="form-group">
                                 <label for="e5">Monetize</label>
-                                <select class="custom-select" @bind="@SelectedLanguageID" >
+                                <select class="custom-select" @bind="@SelectedLanguageID">
                                     @foreach (var monetize in MonetizeList)
                                     {
                                         <option value="@monetize.Code"> @monetize.Name </option>
@@ -198,15 +209,10 @@
         <div class="k-form-field">
             <label class="k-label k-form-label">Video file:</label>
             <div class="k-form-field-wrap">
-                <TelerikUpload
-                           @ref="@UploadRef"
-                           SaveUrl="@SaveUrl"
-                           RemoveUrl="@RemoveUrl"
-                           AllowedExtensions="@( new List<string>() { ".mpg", ".avi" } )"
-                           OnSelect="@OnSelectHandler"
-                           OnCancel="@OnCancelHandler"
-                           OnRemove="@OnRemoveHandler">
-                </TelerikUpload>
+                <TelerikFileSelect
+                    AllowedExtensions="@AllowedExtensions"
+                    OnSelect="@OnSelectHandler">
+                </TelerikFileSelect>
                 <div class="k-form-hint">Accepted files: <strong>MPG and AVI</strong></div>
             </div>
         </div>
@@ -225,8 +231,78 @@ else
     // setup upload endpoints
     public string SaveUrl => ToAbsoluteUrl("api/upload/save");
     public string RemoveUrl => ToAbsoluteUrl("api/upload/remove");
+    List<string> AllowedExtensions { get; set; } = new List<string>() { ".mpg", ".avi" };
+    TelerikUpload? UploadRef { get; set; }
 
-    TelerikUpload UploadRef { get; set; }
+    /// <summary>
+    /// Data to pass as an input to the function
+    /// </summary>
+    private class RequestBodyModel
+    {
+        /// <summary>
+        /// Wallet address of wallet uploading asset
+        /// Mandatory.
+        /// </summary>
+        [JsonProperty("assetOwnerAddress")]
+        public string? AssetOwnerAddress { get; set; }
+
+        /// <summary>
+        /// Signature of wallet owner to prove ownership of asset being loaded
+        /// Mandatory.
+        /// </summary>
+        [JsonProperty("assetOwnerSignature")]
+        public string? AssetOwnerSignature { get; set; }
+
+        /// <summary>
+        /// Asset name
+        /// </summary>
+        [JsonProperty("assetName")]
+        public string AssetName { get; set; }
+
+        /// <summary>
+        /// Asset description
+        /// Optional.
+        /// </summary>
+        [JsonProperty("assetDescription")]
+        public string? AssetDescription { get; set; }
+
+        /// <summary>
+        /// Name of the attached storage account to use for the asset.
+        /// Optional.
+        /// </summary>
+        [JsonProperty("assetStorageAccount")]
+        public string? AssetStorageAccount { get; set; }
+    }
+
+    /// <summary>
+    /// Data output by the function
+    /// </summary>
+    private class AnswerBodyModel
+    {
+        /// <summary>
+        /// Name of the asset created.
+        /// </summary>
+        [JsonProperty("assetName")]
+        public string? AssetName { get; set; }
+
+        /// <summary>
+        /// Id of the asset.
+        /// </summary>
+        [JsonProperty("assetId")]
+        public Guid AssetId { get; set; }
+
+        /// <summary>
+        /// Name of the storage container.
+        /// </summary>
+        [JsonProperty("container")]
+        public string? Container { get; set; }
+
+        /// <summary>
+        /// Uri for uploading blob
+        /// </summary>
+        [JsonProperty("sasUri")]
+        public Uri SasUri { get; set; }
+    }
 
     public string ToAbsoluteUrl(string url)
     {
@@ -235,8 +311,8 @@ else
 
     // setup validation, this is a workaround because file validation does not exist in the framework
     // see more here https://github.com/dotnet/aspnetcore/issues/18821
-    VideoAssetForm currentForm { get; set; }
-    protected EditContext MyEditContext { get; set; }
+    VideoAssetForm? currentForm { get; set; }
+    protected EditContext? MyEditContext { get; set; }
 
     string SelectedLicenseID
     {
@@ -339,65 +415,10 @@ else
         MyEditContext = new EditContext(currentForm);
     }
 
-    void OnSelectHandler(UploadSelectEventArgs e)
+    async Task OnSelectHandler(FileSelectEventArgs args)
     {
-        foreach (var item in e.Files)
-        {
-            if (!FilesValidationInfo.Keys.Contains(item.Id))
-            {
-                // nothing is assumed to be valid until the server returns an OK
-                FilesValidationInfo.Add(item.Id, IsSelectedFileValid(item));
-            }
-        }
-
-        UpdateValidationModel();
+        currentForm.VideoSelected = args;
     }
-
-    void OnCancelHandler(UploadCancelEventArgs e)
-    {
-        RemoveFailedFilesFromList(e.Files);
-        UpdateValidationModel();
-    }
-
-    void OnRemoveHandler(UploadEventArgs e)
-    {
-        RemoveFailedFilesFromList(e.Files);
-        UpdateValidationModel();
-    }
-
-    void RemoveFailedFilesFromList(List<UploadFileInfo> files)
-    {
-        foreach (var file in files)
-        {
-            if (FilesValidationInfo.Keys.Contains(file.Id))
-            {
-                FilesValidationInfo.Remove(file.Id);
-            }
-        }
-    }
-
-    bool IsSelectedFileValid(UploadFileInfo file)
-    {
-        return !(file.InvalidExtension || file.InvalidMaxFileSize || file.InvalidMinFileSize);
-    }
-
-    void UpdateValidationModel()
-    {
-        bool areAllUploadedFilesValid = false;
-
-        if (FilesValidationInfo.Keys.Count > 0 &&
-            !FilesValidationInfo.Values.Contains(false))
-        {
-            areAllUploadedFilesValid = true;
-        }
-
-        currentForm.IsMovieValid = areAllUploadedFilesValid;
-
-        // we update the validation state out of the standard form cycle and events
-        // so we need an EditContext that we can call upon to re-evaluate the validation
-        MyEditContext.Validate();
-    }
-
 
     // sample model
     public class VideoAssetForm
@@ -431,91 +452,65 @@ else
 
         public string? SelectedMonetizeID { get; set; }
 
-        [Required(ErrorMessage = "Please upload a movie file")]
-        [Range(typeof(bool), "true", "true", ErrorMessage = "Please upload a valid movie file")]
-        public bool IsMovieValid { get; set; }
+        public FileSelectEventArgs? VideoSelected { get; set; }
     }
-
-    // UI for the demo to showcase changes to the form validation and success
-    string SuccessMessage = string.Empty;
-
-    void HandleValidSubmit()
-    {
-        /*
-        NameValueCollection nvc = new NameValueCollection();
-        nvc.Add("id", "TTR");
-        nvc.Add("btn-submit-photo", "Upload");
-        HttpUploadFile("https://api.thetavideoapi.com/upload", 
-         @"C:\test\test.jpg", "file", "image/jpeg", nvc);
-         */
-
-        SuccessMessage = "Video uploaded!";
-    }
-
-    public static void HttpUploadFile(string url, string file, string paramName, string contentType, NameValueCollection nvc) {
-        string boundary = "---------------------------" + DateTime.Now.Ticks.ToString("x");
-        byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
-
-        HttpWebRequest wr = (HttpWebRequest)WebRequest.Create(url);
-        wr.ContentType = "multipart/form-data; boundary=" + boundary;
-        wr.Method = "POST";
-        wr.KeepAlive = true;
-        wr.Credentials = System.Net.CredentialCache.DefaultCredentials;
-
-        Stream rs = wr.GetRequestStream();
-
-        string formdataTemplate = "Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}";
-        foreach (string key in nvc.Keys)
-        {
-            rs.Write(boundarybytes, 0, boundarybytes.Length);
-            string formitem = string.Format(formdataTemplate, key, nvc[key]);
-            byte[] formitembytes = System.Text.Encoding.UTF8.GetBytes(formitem);
-            rs.Write(formitembytes, 0, formitembytes.Length);
-        }
-        rs.Write(boundarybytes, 0, boundarybytes.Length);
-
-        string headerTemplate = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: {2}\r\n\r\n";
-        string header = string.Format(headerTemplate, paramName, file, contentType);
-        byte[] headerbytes = System.Text.Encoding.UTF8.GetBytes(header);
-        rs.Write(headerbytes, 0, headerbytes.Length);
-
-        FileStream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read);
-        byte[] buffer = new byte[4096];
-        int bytesRead = 0;
-        while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0) {
-            rs.Write(buffer, 0, bytesRead);
-        }
-        fileStream.Close();
-
-        byte[] trailer = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
-        rs.Write(trailer, 0, trailer.Length);
-        rs.Close();
-
-        WebResponse wresp = null;
-        try {
-            wresp = wr.GetResponse();
-            Stream stream2 = wresp.GetResponseStream();
-            StreamReader reader2 = new StreamReader(stream2);
-        } catch(Exception ex) {
-            if(wresp != null) {
-                wresp.Close();
-                wresp = null;
-            }
-        } finally {
-            wr = null;
-        }
-    }
-
 
     void HandleInvalidSubmit()
     {
         SuccessMessage = string.Empty;
     }
 
-    void Upload()
+    // UI for the demo to showcase changes to the form validation and success
+    string SuccessMessage = string.Empty;
+
+    async void HandleValidSubmit()
     {
-        UploadRef.UploadFiles();
+        var content = new RequestBodyModel();
+        content.AssetDescription = currentForm.About;
+        content.AssetOwnerAddress = MetamaskHostProvider.Current.SelectedAccount;
+        content.AssetOwnerSignature = "TestSignature";
+        content.AssetStorageAccount = "TestAccount";
+        content.AssetName = currentForm.VideoSelected.Files.First().Name;
+
+        using (var httpClient = new HttpClient())
+        {
+            using (var response = await httpClient.PostAsJsonAsync("http://localhost:7071/api/CreateEmptyAsset", content))
+            {
+                response.EnsureSuccessStatusCode();
+
+                var responseBody = await response.Content.ReadAsStringAsync();
+                var answerBody = JsonConvert.DeserializeObject<AnswerBodyModel>(responseBody);
+
+                foreach (var file in currentForm.VideoSelected.Files)
+                {
+                    try
+                    {
+                        BlobContainerClient container = new BlobContainerClient(answerBody.SasUri);
+                        BlobClient blob = container.GetBlobClient(answerBody.AssetName);
+ 
+                        await blob.UploadAsync(file.Stream);
+
+                        /*
+                        var metadata = new Dictionary<string, string> { { "UploadedBy", "Mark" }};
+                        var tags = new Dictionary<string, string> { { "HomePage", "markheath.net" }};
+
+                        var options = new BlobUploadOptions() {
+                            Metadata = metadata,
+                            Tags = tags,
+                            HttpHeaders = new BlobHttpHeaders() { ContentType = "video/mp4" }
+                        };
+                        */
+                    }
+                    catch(Exception)
+                    {
+                    }
+                }
+            }
+        }
+
+        SuccessMessage = "Video uploaded!";
     }
+
 
     async Task BackToForm()
     {
@@ -549,9 +544,7 @@ else
 
     .box:after,
     .demo-section:after {
-        content: ";
-        display: block;
-        clear: both;
+        content: "; display: block;" clear: both;
         height: 0;
     }
 
@@ -559,9 +552,9 @@ else
         margin: 4.5em auto;
     }
 
-    .box:first-child {
-        margin-top: 0;
-    }
+        .box:first-child {
+            margin-top: 0;
+        }
 
     .center {
         text-align: center;
@@ -571,6 +564,7 @@ else
         max-width: 100%;
         border: none;
     }
+
     .demo-alert {
         font: normal 18px "Metric";
         border-radius: 2px;
