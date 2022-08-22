@@ -244,7 +244,7 @@ else
         /// Mandatory.
         /// </summary>
         [JsonProperty("assetOwnerAddress")]
-        public string? AssetOwnerAddress { get; set; }
+        public string AssetOwnerAddress { get; set; } = "0x0000000000000000000000000000000000000000";
 
         /// <summary>
         /// Signature of wallet owner to prove ownership of asset being loaded
@@ -257,7 +257,7 @@ else
         /// Asset name
         /// </summary>
         [JsonProperty("assetName")]
-        public string AssetName { get; set; }
+        public string AssetName { get; set; } = "DefualtName";
 
         /// <summary>
         /// Asset description
@@ -265,13 +265,6 @@ else
         /// </summary>
         [JsonProperty("assetDescription")]
         public string? AssetDescription { get; set; }
-
-        /// <summary>
-        /// Name of the attached storage account to use for the asset.
-        /// Optional.
-        /// </summary>
-        [JsonProperty("assetStorageAccount")]
-        public string? AssetStorageAccount { get; set; }
     }
 
     /// <summary>
@@ -301,7 +294,7 @@ else
         /// Uri for uploading blob
         /// </summary>
         [JsonProperty("sasUri")]
-        public Uri SasUri { get; set; }
+        public Uri? SasUri { get; set; }
     }
 
     public string ToAbsoluteUrl(string url)
@@ -311,7 +304,7 @@ else
 
     // setup validation, this is a workaround because file validation does not exist in the framework
     // see more here https://github.com/dotnet/aspnetcore/issues/18821
-    VideoAssetForm? currentForm { get; set; }
+    VideoAssetForm currentForm { get; set; } = new VideoAssetForm();
     protected EditContext? MyEditContext { get; set; }
 
     string SelectedLicenseID
@@ -406,12 +399,11 @@ else
         public string Name { get; set; }
     }
 
-    private bool NotValid => MyEditContext.GetValidationMessages().Any();
+    private bool NotValid => MyEditContext != null ? MyEditContext.GetValidationMessages().Any() : true;
     Dictionary<string, bool> FilesValidationInfo { get; set; } = new Dictionary<string, bool>();
 
     protected override void OnInitialized()
     {
-        currentForm = new VideoAssetForm();
         MyEditContext = new EditContext(currentForm);
     }
 
@@ -444,13 +436,13 @@ else
 
         public int Language { get; set; }
 
-        public string? SelectedAccessID { get; set; }
+        public string SelectedAccessID { get; set; } = "Public";
 
-        public string? SelectedLicenseID { get; set; }
+        public string SelectedLicenseID { get; set; } = "STD";
 
-        public string? SelectedLanguageID { get; set; }
+        public string SelectedLanguageID { get; set; } = "English";
 
-        public string? SelectedMonetizeID { get; set; }
+        public string SelectedMonetizeID { get; set; } = "No";
 
         public FileSelectEventArgs? VideoSelected { get; set; }
     }
@@ -469,40 +461,42 @@ else
         content.AssetDescription = currentForm.About;
         content.AssetOwnerAddress = MetamaskHostProvider.Current.SelectedAccount;
         content.AssetOwnerSignature = "TestSignature";
-        content.AssetStorageAccount = "TestAccount";
-        content.AssetName = currentForm.VideoSelected.Files.First().Name;
+        content.AssetName = currentForm.VideoSelected != null ? currentForm.VideoSelected.Files.First().Name : "DefaultName";
 
         using (var httpClient = new HttpClient())
         {
-            using (var response = await httpClient.PostAsJsonAsync("http://localhost:7071/api/CreateEmptyAsset", content))
+            using (var response = await httpClient.PostAsJsonAsync("https://jeskeimediafunctions20220705210441.azurewebsites.net/api/CreateEmptyAsset", content))
             {
                 response.EnsureSuccessStatusCode();
 
                 var responseBody = await response.Content.ReadAsStringAsync();
                 var answerBody = JsonConvert.DeserializeObject<AnswerBodyModel>(responseBody);
 
-                foreach (var file in currentForm.VideoSelected.Files)
+                if (currentForm.VideoSelected != null)
                 {
-                    try
+                    foreach (var file in currentForm.VideoSelected.Files)
                     {
-                        BlobContainerClient container = new BlobContainerClient(answerBody.SasUri);
-                        BlobClient blob = container.GetBlobClient(answerBody.AssetName);
- 
-                        await blob.UploadAsync(file.Stream);
+                        try
+                        {
+                            BlobContainerClient container = new BlobContainerClient(answerBody.SasUri);
+                            BlobClient blob = container.GetBlobClient(answerBody.AssetName);
 
-                        /*
-                        var metadata = new Dictionary<string, string> { { "UploadedBy", "Mark" }};
-                        var tags = new Dictionary<string, string> { { "HomePage", "markheath.net" }};
+                            await blob.UploadAsync(file.Stream);
 
-                        var options = new BlobUploadOptions() {
-                            Metadata = metadata,
-                            Tags = tags,
-                            HttpHeaders = new BlobHttpHeaders() { ContentType = "video/mp4" }
-                        };
-                        */
-                    }
-                    catch(Exception)
-                    {
+                            /*
+                            var metadata = new Dictionary<string, string> { { "UploadedBy", "Mark" }};
+                            var tags = new Dictionary<string, string> { { "HomePage", "markheath.net" }};
+
+                            var options = new BlobUploadOptions() {
+                                Metadata = metadata,
+                                Tags = tags,
+                                HttpHeaders = new BlobHttpHeaders() { ContentType = "video/mp4" }
+                            };
+                            */
+                        }
+                        catch (Exception)
+                        {
+                        }
                     }
                 }
             }
@@ -544,7 +538,7 @@ else
 
     .box:after,
     .demo-section:after {
-        content: "; display: block;" clear: both;
+        content: "; display: block; clear: both";
         height: 0;
     }
 

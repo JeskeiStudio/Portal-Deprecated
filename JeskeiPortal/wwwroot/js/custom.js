@@ -70,7 +70,7 @@ Version: 1.0
 
 	
   // Tooltip
-  $('[data-toggle="tooltip"]').tooltip()
+  // $('[data-toggle="tooltip"]').tooltip()
 
   // Scroll to top button appear
   $(document).on('scroll', function() {
